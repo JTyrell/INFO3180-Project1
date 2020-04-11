@@ -14,5 +14,5 @@ class UserForm(FlaskForm):
     gender = SelectField(label='Gender', choices=[("M", "Male"), ("F", "Female")])
     email=StringField('Email',validators=[DataRequired()])
     location=StringField('Location',validators=[DataRequired()])
-    biography=TextAreaField('Biography', validators=[Length(min=100, max=1000)])
-    upload = FileField('Profile Photo', validators=[FileRequired(), FileAllowed(['jpg', 'png','jpeg','gif','tiff','jfif', 'Images only!'])])
+    biography=TextAreaField('Biography', validators=[Length(min=10, max=1000)])
+    upload = FileField('Profile Photo', validators=[FileRequired(), FileAllowed(['jpg','png','jpeg','gif','tiff','jfif', 'Images only!'])])

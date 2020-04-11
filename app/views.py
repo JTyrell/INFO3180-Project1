@@ -8,7 +8,7 @@ import os, random, datetime
 from app import app, db, login_manager
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
-from app.forms import LoginForm, MyForm
+from app.forms import LoginForm, UserForm
 from app.models import UserProfile
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
@@ -57,7 +57,8 @@ def profile():
             profile_date = datetime.date.today().strftime("%b %d, %Y")
             user_id = genId(fname, lname, location)
             
-            new_profile = UserProfile(fname=fame, lame=lname, gender=gender, email=email, location=location, biography=biography, upload=filename, profile_creation=profile_date)
+            new_profile = UserProfile(fname=fname, lname=lname, gender=gender, email=email, location=location,
+                                      biography=biography, upload=filename, profile_creation=profile_date)
             
             db.session.add(new_profile)
             db.session.commit()
@@ -101,8 +102,8 @@ def get_profile(userid):
     
     elif request.method == "POST":
         if user is not None:
-            response = make_response(jsonify(userid=user.id, fname=user.fnamename, lame=user.lnamename, gender=user.gender, email=user.email, upload=user.upload,  location=user.location, biography=user.biography,
-                    profile_creation=user.profile_creation))
+            response = make_response(jsonify(userid=user.id, fname=user.fnamename, lname=user.lnamename, gender=user.gender, email=user.email, upload=user.upload,
+                        location=user.location, biography=user.biography, profile_creation=user.profile_creation))
             response.headers['Content-Type'] = 'application/json'            
             return response
         else:
