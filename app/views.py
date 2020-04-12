@@ -12,6 +12,8 @@ from app.forms import LoginForm, UserForm
 from app.models import UserProfile
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
+from .db_data import getData, getUser
+from . import db
 
 ###
 # Routing for your application.
@@ -31,7 +33,7 @@ def secure_page():
 @app.route('/about/')
 def about():
     """Render the website's about page."""
-    return render_template('about.html')
+    return render_template('about.html',name="Jevoun Tyrell")
     
  
 
@@ -41,90 +43,96 @@ def profile():
     
     if request.method == 'POST':
         if myform.validate_on_submit():
-            fname= myform.fname.data
-            lname= myform.lname.data
-            gender= myform.gender.data
-            email= myform.email.data
-            location= myform.location.data
-            biography= myform.biography.data
-            upload= myform.upload.data
             
+            upload = myform.upload.data
+                                  
             filename=secure_filename(upload.filename)
-            upload.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            upload.save(os.path.join("."+app.config['UPLOAD_FOLDER'],filename))
             filename= secure_filename(upload.filename)
             
             
             profile_date = datetime.date.today().strftime("%b %d, %Y")
-            user_id = genId(fname, lname, location)
             
-            new_profile = UserProfile(fname=fname, lname=lname, gender=gender, email=email, location=location,
-                                      biography=biography, upload=filename, profile_creation=profile_date)
+            #user_id = genId(fname, lname, location)
+            
+            new_profile = UserProfile(fname=myform.fname.data, lname=myform.lname.data, gender=myform.gender.data, email=myform.email.data,
+                                      location=myform.location.data, biography=myform.biography.data, upload=filename, profile_creation=profile_date)
             
             db.session.add(new_profile)
             db.session.commit()
                 
             
-            flash('Profile added!')
+            flash("Profile added!","success")
             return redirect(url_for("profiles"))
             
         flash_errors(myform)
     return render_template('profile.html', form=myform)
     
 
-@app.route('/profiles/', methods=["GET", "POST"])
+##@app.route('/profiles/', methods=["GET", "POST"])
+##def profiles():
+##    
+##    users = UserProfile.query.all()
+##
+##    user_list = [{"userid": user.id} for user in users]
+##    
+##    if request.method == "GET":
+##        file_folder = app.config['UPLOAD_FOLDER']
+##        return render_template("profiles.html", users=users)
+##    
+##    elif request.method == "POST":
+##        response = make_response(jsonify({"users": user_list}))                                           
+##        response.headers['Content-Type'] = 'application/json'            
+##        return response 
+
+ 
+@app.route('/profiles')
 def profiles():
-    
-    users = UserProfile.query.all()
-
-    user_list = [{"userid": user.id} for user in users]
-    
-    if request.method == "GET":
-        file_folder = app.config['UPLOAD_FOLDER']
-        return render_template("profiles.html", users=users)
-    
-    elif request.method == "POST":
-        response = make_response(jsonify({"users": user_list}))                                           
-        response.headers['Content-Type'] = 'application/json'            
-        return response 
- 
- 
- 
- 
- 
-@app.route('/profile/<userid>', methods=["GET", "POST"])
-def get_profile(userid):
-    
-    user = UserProfile.query.filter_by(id=userid).first()
-    
-    if request.method == "GET":
-        file_folder = app.config['UPLOAD_FOLDER']
-        return render_template("user_profile.html", user=user)
-    
-    elif request.method == "POST":
-        if user is not None:
-            response = make_response(jsonify(userid=user.id, fname=user.fnamename, lname=user.lnamename, gender=user.gender, email=user.email, upload=user.upload,
-                        location=user.location, biography=user.biography, profile_creation=user.profile_creation))
-            response.headers['Content-Type'] = 'application/json'            
-            return response
-        else:
-            flash('No User Found', 'danger')
-            return redirect(url_for("profiles"))
+    user_records = getData()
+    return render_template('profiles.html', data=user_records)
 
 
-def genId(fname, lname, location):
-    uid = []
-    for x in fname:
-        uid.append(str(ord(x)))
-    for x in lname:
-        uid.append(str(ord(x)))
-    for x in location:
-        uid.append(str(ord(x)))
-    
-    random.shuffle(uid)
-    
-    uid = "".join(uid)
-    
-    return uid[:7]
+@app.route('/profiles/<userid>')
+def user(userid):
+    user = getUser(userid);
+    return render_template('user.html', user=user)
+ 
+ 
+ 
+##@app.route('/profile/<userid>', methods=["GET", "POST"])
+##def userprofile(userid):
+##    
+##    user = UserProfile.query.filter_by(id=userid).first()
+##    
+##    if request.method == "GET":
+##        file_folder = app.config['UPLOAD_FOLDER']
+##        return render_template("user_profile.html", user=user)
+##    
+##    elif request.method == "POST":
+##        if user is not None:
+##            response = make_response(jsonify(userid=user.id, fname=user.fnamename, lname=user.lnamename, gender=user.gender, email=user.email,
+##                                       upload=user.upload, location=user.location, biography=user.biography, profile_creation=user.profile_creation))
+##            response.headers['Content-Type'] = 'application/json'            
+##            return response
+##        else:
+##            flash('No User Found', 'danger')
+##            return redirect(url_for("profiles"))
+##
+##
+##def genId(fname, lname, location):
+##    uid = []
+##    for x in fname:
+##        uid.append(str(ord(x)))
+##    for x in lname:
+##        uid.append(str(ord(x)))
+##    for x in location:
+##        uid.append(str(ord(x)))
+##    
+##    random.shuffle(uid)
+##    
+##    uid = "".join(uid)
+##    
+##    return uid[:7]
    
 
 
@@ -232,6 +240,16 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+
+
+def  get_uploaded_images():
+    rootdir = os.getcwd()
+    links = []
+    for subdir, dirs, files in os.walk(rootdir + app.config['UPLOAD_FOLDER']):
+        for file in files:
+            links.append(file)
+        links.pop(links.index(".gitkeep"))
+        return links
 
 
 if __name__ == '__main__':
